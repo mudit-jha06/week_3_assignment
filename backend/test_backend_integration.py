@@ -26,7 +26,7 @@ class MockResult:
 
 class MockRetrieval:
     def retrieve(self, query: str, top_k: int = 8) -> List[MockResult]:
-        """Mock retrieval - returns fake results."""
+        """Mock retrieval - returns fake results."""    
         return [MockResult(f"paper_{i}") for i in range(top_k)]
 
 class MockLLMClient:

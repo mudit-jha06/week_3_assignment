@@ -37,7 +37,7 @@ def load_chunks(path: str) -> list[dict]:
     print(f"Loaded {len(chunks)} chunks")
     return chunks
 
-
+#path: Path to compressed npz file which holds the embeddings
 def load_embeddings(path: str) -> np.ndarray:
     """Load pre-computed embeddings from .npz file."""
     print(f"Loading embeddings from {path}...")
