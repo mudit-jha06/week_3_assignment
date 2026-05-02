@@ -162,13 +162,15 @@ def main():
     print("✓ Connected!")
     
     # Load data
+    print('Loading chunks into memory...')
     chunks = load_chunks(args.chunks)
+    print('Loading embeddings(numpy arrays) into memory ...')
     embeddings = load_embeddings(args.embeddings)
     
     # Create collection
     create_qdrant_collection(client, COLLECTION_NAME, VECTOR_SIZE, recreate=args.recreate)
     
-    # Upload
+    # Upload the loaded embeddings into Qdrant
     upload_to_qdrant(client, COLLECTION_NAME, chunks, embeddings)
     
     # Verify

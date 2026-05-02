@@ -62,10 +62,10 @@ class RetrievalPipelineConfig:
     chunks_path: str = "./chunks.json"
     semantic_weight: float = 0.7
     bm25_weight: float = 0.3
-    use_reranker: bool = True
+    use_reranker: bool = False
     cohere_api_key: Optional[str] = None
 
-
+#Generate embeddings for the siggraph papers
 class OpenRouterEmbedder:
     """
     Generate embeddings using OpenRouter API.
@@ -85,7 +85,14 @@ class OpenRouterEmbedder:
             api_key: OpenRouter API key
             model: Embedding model to use
         """
-        pass
+        #Read from env vars:
+        self.api_key = os.getenv("OPENROUTER_API_KEY")
+        self.model = os.getenv("EMBEDDING_MODEL")
+        self.base_url = "https://openrouter.ai/api/v1"
+        if not self.api_key:
+            raise ValueError("OPENROUTER_API_KEY not found in environment variables")
+        if not self.model:
+            raise ValueError("EMBEDDING_MODEL not found in environment variables")
     
     def embed_query(self, text: str) -> np.ndarray:
         """
@@ -117,7 +124,32 @@ class OpenRouterEmbedder:
         Returns:
             Embedding vector as numpy array
         """
-        pass
+        #Build request headers as a dict:
+        self.headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+        #Build request payload as dict:
+        self.payload = {
+            "model": self.model,
+            "input":text
+        }
+        print('Embedding model is:', self.model)
+
+        #Make POST request using requests lib:
+        response = requests.post(
+            url=f"{self.base_url}/embeddings",
+            headers=self.headers,
+            json=self.payload
+        )
+
+        response.raise_for_status()
+        response_data = response.json()
+        embedding = response_data["data"][0]["embedding"]
+        print('Embedding data type:', type(embedding))
+        return np.array(embedding, dtype=np.float32)
+
 
 
 class BM25Index:
