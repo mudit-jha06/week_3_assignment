@@ -295,6 +295,8 @@ class RetrievalPipeline:
             raise ValueError("OPENROUTER_API_KEY not found in configuration")
 
         #Initialize Qdrant client
+        print(f"DEBUG - Qdrant URL: {self.config.qdrant_url}")
+        print(f"DEBUG - Qdrant API Key: {'SET' if self.config.qdrant_api_key else 'NOT SET'}")
         self.qdrant = QdrantClient(
             url=self.config.qdrant_url,
             api_key=self.config.qdrant_api_key,

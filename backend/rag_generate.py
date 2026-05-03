@@ -163,6 +163,7 @@ class RAGGenerator:
             req_payload = self.generate_req_payload(
                 user_prompt=query_refine_prompt
             )
+            req_payload['model'] = self.config.refinement_model
 
             #Make POST request: 
             try:
@@ -328,8 +329,12 @@ class RAGGenerator:
         req_headers = self.generate_req_headers()
         req_payload = self.generate_req_payload(
             system_prompt=SYSTEM_PROMPT,
-            user_prompt=user_message
+            user_prompt=user_message.format(query=query, context=context)
         )
+        req_payload['model'] = self.config.llm_model
+        user_prompt = user_message.format(query=query, context=context)
+        print('User prompt is:', user_prompt[:400])
+        print('#' * 60)
         #Make POST request:
         response = requests.post(
             f"{self.openrouter_base_url}/chat/completions",
@@ -386,6 +391,7 @@ class RAGGenerator:
         else:
             refined_query = query
         print(f'Refined query is: {refined_query}')
+        print('Doing retrieval ****')
         results = self.retrieval.retrieve(refined_query, top_k)
         
         if not results:
@@ -426,7 +432,6 @@ class RAGGenerator:
         if user_prompt:
             messages.append({"role": "user", "content": user_prompt})
         return {
-            "model": self.config.llm_model,
             "messages": messages,
             "temperature": self.config.temperature,
             "max_tokens": self.config.max_tokens
