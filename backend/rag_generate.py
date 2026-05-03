@@ -184,7 +184,7 @@ class RAGGenerator:
     
     def _format_context(self, results: list[RetrievalResult]) -> str:
         """
-        Format retrieved chunks into a context string for the LLM to use.
+        Format retrieved chunks after hybrid search into a context string for the LLM to use.
         
         TODO:
         1. Build a list of formatted source strings from each result
@@ -211,6 +211,8 @@ class RAGGenerator:
             Formatted context string
         """
         formatted_context_strings = []
+        i = 0
+        result = results[0]
         formatted_string = f'''
            --- Source {i} ---
            Title: {result.title}
@@ -220,8 +222,8 @@ class RAGGenerator:
            Content:
            {result.text}
            '''
-        for i, result in enumerate(results, start = 1):
-            context_string = formatted_string.format(i=i, result=result)
+        for ind, result in enumerate(results, start = 1):
+            context_string = formatted_string.format(i=ind, result=result)
             formatted_context_strings.append(context_string)
         #Join together the formatted context strings:        
         return "\n".join(formatted_context_strings)
@@ -383,8 +385,8 @@ class RAGGenerator:
             refined_query = self.refine_query(query)
         else:
             refined_query = query
-        
-        results = self.retrieve_chunks(refined_query, top_k)
+        print(f'Refined query is: {refined_query}')
+        results = self.retrieval.retrieve(refined_query, top_k)
         
         if not results:
             return {
@@ -395,6 +397,7 @@ class RAGGenerator:
             }
         
         context = self._format_context(results)
+        print('Calling LLM to generate answer ...')
         answer = self._call_llm(refined_query, context)
         
         return {

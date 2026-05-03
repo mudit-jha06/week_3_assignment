@@ -65,7 +65,7 @@ class RetrievalPipelineConfig:
     use_reranker: bool = False
     cohere_api_key: Optional[str] = None
 
-#Generate embeddings for the siggraph papers
+#Generate embeddings for the user query
 class OpenRouterEmbedder:
     """
     Generate embeddings using OpenRouter API.
@@ -179,8 +179,8 @@ class BM25Index:
             chunks: List of chunk dictionaries from chunks.json
         """
         self.chunks = chunks
-        self.chunk_id_to_idx = {c["chunk_id"]: i for i, c in enumerate(chunks)}
-        self.tokenized_docs = [self._tokenize(c["text"]) for c in chunks]
+        #self.chunk_id_to_idx = {c[i]: i for i, c in enumerate(chunks)}
+        self.tokenized_docs = [self._tokenize(c['text']) for c in chunks]
         self.bm25 = BM25Okapi(self.tokenized_docs)
     
     def _tokenize(self, text: str) -> list[str]:
@@ -305,13 +305,15 @@ class RetrievalPipeline:
             api_key=self.config.openrouter_api_key,
         )
         
-        #Load chunks
         with open(self.config.chunks_path, "r") as f:
             self.chunks = json.load(f)
         
+        #The actual chunks are stored under the key 'chunks'
+        #of the top level dict:
+        self.chunks = self.chunks['chunks']        
         #Build BM25 index
+        print('Building index ****')
         self.bm25_index = BM25Index(self.chunks)
-        print("BM25 index built")
         
         
     
@@ -352,6 +354,7 @@ class RetrievalPipeline:
         
         #Do semantic search for nearest neughbours of chunked docs
         # which are stored in Qdrant:
+        print('Calling Qdrant for semantic search ***')
         results = self.qdrant.query_points(
             collection_name=COLLECTION_NAME,
             query=query_embedding.tolist(),
@@ -464,19 +467,21 @@ class RetrievalPipeline:
             r["normalized_score"] = r["score"] / max_bm25_score
 
         combined_results = {}
-        for chunk_id in semantic_results:
-            combined_results[chunk_id] = semantic_results[chunk_id]
-            combined_results[chunk_id]['combined_score'] = combined_results[chunk_id]['normalized_score'] * self.config.semantic_weight
+        for result in semantic_results:
+            chunk_id = result["chunk_id"]
+            combined_results[chunk_id] = result
+            combined_results[chunk_id]['combined_score'] =result['normalized_score'] * self.config.semantic_weight
         
-        for chunk_id in bm25_results:
+        for result in bm25_results:
+            chunk_id = result["chunk_id"]
             if chunk_id in combined_results:
-                combined_results[chunk_id]["bm25_score"] = bm25_results[chunk_id]["score"]
-                combined_results[chunk_id]['combined_score'] += combined_results[chunk_id]['normalized_score'] * self.config.bm25_weight
+                combined_results[chunk_id]['combined_score'] += result['normalized_score'] * self.config.bm25_weight
             else:
-                combined_results[chunk_id] = bm25_results[chunk_id]
-                combined_results[chunk_id]['combined_score'] = combined_results[chunk_id]['normalized_score'] * self.config.bm25_weight
+                combined_results[chunk_id] = result
+                combined_results[chunk_id]['combined_score'] = result['normalized_score'] * self.config.bm25_weight
 
         #Sort by combined score and return top_k
+        top_k = min(semantic_top_k, bm25_top_k, len(combined_results))
         sorted_results = sorted(combined_results.values(), key=lambda x: x['combined_score'], reverse=True)
         return sorted_results[:top_k]
 
