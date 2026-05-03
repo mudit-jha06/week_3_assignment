@@ -179,7 +179,7 @@ class BM25Index:
             chunks: List of chunk dictionaries from chunks.json
         """
         self.chunks = chunks
-        #self.chunk_id_to_idx = {c[i]: i for i, c in enumerate(chunks)}
+        self.chunk_id_to_idx = {c["chunk_id"]: i for i, c in enumerate(chunks)}
         self.tokenized_docs = [self._tokenize(c['text']) for c in chunks]
         self.bm25 = BM25Okapi(self.tokenized_docs)
     
@@ -457,15 +457,15 @@ class RetrievalPipeline:
         bm25_results = self.bm25_search(query, bm25_top_k)
 
         #Normalize semantic search and BM25 search scores:
-        max_semantic_score = max([r["score"] for r in semantic_results])
-        max_bm25_score = max([r["score"] for r in bm25_results])
-
-        #Update to add the normalized scores for each:
-        for r in semantic_results:
-            r["normalized_score"] = r["score"] / max_semantic_score
+        if semantic_results:
+            max_semantic_score = max([r["score"] for r in semantic_results])
+            for r in semantic_results:
+                r["normalized_score"] = r["score"] / max_semantic_score if max_semantic_score > 0 else 0
         
-        for r in bm25_results:
-            r["normalized_score"] = r["score"] / max_bm25_score
+        if bm25_results:
+            max_bm25_score = max([r["score"] for r in bm25_results])
+            for r in bm25_results:
+                r["normalized_score"] = r["score"] / max_bm25_score if max_bm25_score > 0 else 0
 
         combined_results = {}
         for result in semantic_results:

@@ -157,13 +157,19 @@ class RAGGenerator:
         elif not self.openrouter_api_key or not self.openrouter_base_url:
             return query
         else:
-            req_headers = self.generate_req_headers()
+            req_headers = {"Authorization": f"Bearer {self.openrouter_api_key}", "Content-Type": "application/json"}
             query_refine_prompt = QUERY_REFINEMENT_PROMPT.format(query=query)
             #Build payload for request
-            req_payload = self.generate_req_payload(
-                user_prompt=query_refine_prompt
-            )
-            req_payload['model'] = self.config.refinement_model
+            # req_payload = self.generate_req_payload(
+            #     user_prompt=query_refine_prompt
+            # )
+            # req_payload['model'] = self.config.refinement_model
+            req_payload = {
+            "model": self.config.refinement_model,
+            "messages": [{"role": "user", "content": query_refine_prompt}],
+            "temperature": 0.3,
+            "max_tokens": 100
+           }
 
             #Make POST request: 
             try:
@@ -326,12 +332,21 @@ class RAGGenerator:
            {context}
 
            Remember to cite papers using [Paper Title] format.'''
-        req_headers = self.generate_req_headers()
-        req_payload = self.generate_req_payload(
-            system_prompt=SYSTEM_PROMPT,
-            user_prompt=user_message.format(query=query, context=context)
-        )
-        req_payload['model'] = self.config.llm_model
+        req_headers = {"Authorization": f"Bearer {self.openrouter_api_key}", "Content-Type": "application/json"}
+        # req_payload = self.generate_req_payload(
+        #     system_prompt=SYSTEM_PROMPT,
+        #     user_prompt=user_message.format(query=query, context=context)
+        # )
+        # req_payload['model'] = self.config.llm_model
+        req_payload = {
+               "model": self.config.llm_model,
+               "messages": [
+                   {"role": "system", "content": SYSTEM_PROMPT},
+                   {"role": "user", "content": user_message}
+               ],
+               "temperature": self.config.temperature,
+               "max_tokens": self.config.max_tokens
+           }
         user_prompt = user_message.format(query=query, context=context)
         print('User prompt is:', user_prompt[:400])
         print('#' * 60)
@@ -342,7 +357,9 @@ class RAGGenerator:
             json=req_payload,
             timeout=30
         )
-        response.raise_for_status()
+        if response.status_code != 200:
+            raise ValueError(f"OpenRouter API error: {response.status_code} - {response.text}")
+        
         response_json = response.json()
         answer = response_json["choices"][0]["message"]["content"]
         return answer
