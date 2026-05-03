@@ -171,7 +171,7 @@ class RAGGenerator:
                     f"{self.openrouter_base_url}/chat/completions",
                     json=req_payload,
                     headers=req_headers,
-                    timeout=10
+                    timeout=30
                 )
                 response.raise_for_status()
                 response_json = response.json()
@@ -339,7 +339,8 @@ class RAGGenerator:
         response = requests.post(
             f"{self.openrouter_base_url}/chat/completions",
             headers=req_headers,
-            json=req_payload
+            json=req_payload,
+            timeout=30
         )
         response.raise_for_status()
         response_json = response.json()

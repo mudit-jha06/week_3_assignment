@@ -295,8 +295,6 @@ class RetrievalPipeline:
             raise ValueError("OPENROUTER_API_KEY not found in configuration")
 
         #Initialize Qdrant client
-        print(f"DEBUG - Qdrant URL: {self.config.qdrant_url}")
-        print(f"DEBUG - Qdrant API Key: {'SET' if self.config.qdrant_api_key else 'NOT SET'}")
         self.qdrant = QdrantClient(
             url=self.config.qdrant_url,
             api_key=self.config.qdrant_api_key,
@@ -363,6 +361,7 @@ class RetrievalPipeline:
             limit=top_k,
             with_payload=True
         ).points
+        print('DONEE')
         
         #Convert to list of dicts
         return [
@@ -485,6 +484,7 @@ class RetrievalPipeline:
         #Sort by combined score and return top_k
         top_k = min(semantic_top_k, bm25_top_k, len(combined_results))
         sorted_results = sorted(combined_results.values(), key=lambda x: x['combined_score'], reverse=True)
+        print('Returning sorted results ***')
         return sorted_results[:top_k]
 
         
@@ -583,6 +583,7 @@ class RetrievalPipeline:
         final = reranked[:top_k]
 
         #Format into RetrievalResult type format:
+        print('Retreival done **')
         return [
             RetrievalResult(
                 chunk_id=r["payload"]["chunk_id"],
