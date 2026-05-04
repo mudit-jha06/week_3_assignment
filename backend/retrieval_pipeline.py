@@ -315,6 +315,8 @@ class RetrievalPipeline:
         print('Building index ****')
         self.bm25_index = BM25Index(self.chunks)
         
+    def __repr__(self):
+        return f"RetrievalPipeline(config={self.config}, chunks={len(self.chunks)}, bm25_index={self.bm25_index})"
         
     
     def semantic_search(self, query: str, top_k: int = 30) -> list[dict]:
@@ -484,7 +486,6 @@ class RetrievalPipeline:
         #Sort by combined score and return top_k
         top_k = min(semantic_top_k, bm25_top_k, len(combined_results))
         sorted_results = sorted(combined_results.values(), key=lambda x: x['combined_score'], reverse=True)
-        print('Returning sorted results ***')
         return sorted_results[:top_k]
 
         

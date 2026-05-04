@@ -54,10 +54,10 @@ async def lifespan(app: FastAPI):
     print("="*60)
     
     config = GenerationConfig(
-        llm_model="openai/gpt-4o",
         retrieval_top_k=8,
         refine_query=True
     )
+    #print('Max token limit is:', config.max_tokens)
     
     rag_generator = RAGGenerator(config)
     print("\n✅ RAG pipeline ready!")
@@ -222,6 +222,7 @@ async def stream_rag_response(
         })
         
         # Stage 3: Generating
+        #print('GENERATING ANSWER NOWWW')
         yield emit("progress", {"message": "Generating answer...", "stage": "generating"})
         
         # Format context and build sources
@@ -251,7 +252,7 @@ IMPORTANT: You have been provided with {len(results)} paper excerpts. Make sure 
         }
         
         payload = {
-            "model": f"openai/{rag_generator.config.llm_model}",
+            "model": rag_generator.config.llm_model,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message}
@@ -260,6 +261,8 @@ IMPORTANT: You have been provided with {len(results)} paper excerpts. Make sure 
             "max_tokens": rag_generator.config.max_tokens,
             "stream": True
         }
+        print('RAG Generator:')
+        print(rag_generator)
         
         response = requests.post(
             f"{rag_generator.openrouter_base_url}/chat/completions",
@@ -267,6 +270,8 @@ IMPORTANT: You have been provided with {len(results)} paper excerpts. Make sure 
             json=payload,
             stream=True
         )
+        print('Response status code:', response.status_code)
+        print('Response text:', response.text)
         
         answer_chunks = []
         for line in response.iter_lines():
@@ -284,11 +289,13 @@ IMPORTANT: You have been provided with {len(results)} paper excerpts. Make sure 
                             yield emit("chunk", {"content": content})
                     except json.JSONDecodeError:
                         continue
-        
+        print('Len of answer chunks:', len(answer_chunks))
         answer = "".join(answer_chunks)
         
         # Stage 4: Complete
         processing_time = time.time() - start_time
+        print('Processing time:', processing_time)
+        print('Lentgh of answer:', len(answer))
         yield emit("complete", {
             "answer": answer,
             "sources": sources_metadata,
@@ -445,7 +452,7 @@ IMPORTANT: You have been provided with {len(results)} paper excerpts. Make sure 
         }
         
         payload = {
-            "model": f"openai/{rag_generator.config.llm_model}",
+            "model": rag_generator.config.llm_model,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message}
@@ -522,7 +529,7 @@ if __name__ == "__main__":
 ║  Starting server on http://0.0.0.0:{port}                     ║
 ║                                                                ║
 ║  Endpoints:                                                    ║
-║    • GET  /              - Frontend UI                         ║
+║    • GET  /              - Frontend UI                        ║
 ║    • GET  /docs          - API Documentation                   ║
 ║    • POST /api/query     - Query endpoint                      ║
 ║    • WS  /ws/query       - WebSocket streaming                 ║
