@@ -54,10 +54,9 @@ async def lifespan(app: FastAPI):
     print("="*60)
     
     config = GenerationConfig(
-        retrieval_top_k=8,
+        retrieval_top_k=5,
         refine_query=True
     )
-    #print('Max token limit is:', config.max_tokens)
     
     rag_generator = RAGGenerator(config)
     print("\n✅ RAG pipeline ready!")
@@ -222,7 +221,6 @@ async def stream_rag_response(
         })
         
         # Stage 3: Generating
-        #print('GENERATING ANSWER NOWWW')
         yield emit("progress", {"message": "Generating answer...", "stage": "generating"})
         
         # Format context and build sources

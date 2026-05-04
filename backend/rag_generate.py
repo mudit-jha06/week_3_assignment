@@ -61,13 +61,13 @@ Refined search query:"""
 @dataclass
 class GenerationConfig:
     """Configuration for the RAG generator."""
-    llm_model: str = "openai/gpt-3.5-turbo"  # Model to use for answer generation
+    llm_model: str = "openai/gpt-4o"  # Model to use for answer generation
     temperature: float = 0.1  # Low temperature for factual answers
-    max_tokens: int = 1620  # Max length of generated answer
+    max_tokens: int = 2000  # Max length of generated answer
     openrouter_api_key: Optional[str] = None  # Will load from env if not set
     refine_query: bool = False  # Whether to refine queries before retrieval
     refinement_model: str = "openai/gpt-3.5-turbo"  # Cheaper model for refinement
-    retrieval_top_k: int = 8  # Number of chunks to retrieve
+    retrieval_top_k: int = 5  # Number of chunks to retrieve
 
 
 # =============================================================================
@@ -351,9 +351,6 @@ class RAGGenerator:
                "max_tokens": self.config.max_tokens
            }
         user_prompt = user_message.format(query=query, context=context)
-        #print('User prompt length:', len(user_prompt))
-        #print('User message length:', len(user_message))
-        #print('Query is:', query)
         #Make POST request:
         response = requests.post(
             f"{self.openrouter_base_url}/chat/completions",
@@ -413,11 +410,7 @@ class RAGGenerator:
         else:
             refined_query = query
         print(f'Refined query is: {refined_query}')
-        #print('Top k is:', top_k)
-        #print('Config top k is:', self.config.retrieval_top_k)
-        #print('Doing retrieval NOWW ****')
         results = self.retrieval.retrieve(refined_query, top_k or self.config.retrieval_top_k)
-        #print('Number of results fetched is:', len(results))
         
         if not results:
             return {
@@ -428,7 +421,6 @@ class RAGGenerator:
             }
         
         context = self._format_context(results)
-        #print('Length of context: ', len(context))
         print('Calling LLM to generate answer ...')
         answer = self._call_llm(refined_query, context)
         
